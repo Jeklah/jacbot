@@ -6,14 +6,18 @@ The channels are specified by the username or URL.
 The bot processes messages 10 at a time.
 The bot will wait after multiple invite attempts to avoid being rate-limited.
 
+
+Instructions:
+Install Python 3.7 or higher.
+
+Ensure you have installed the required dependencies:
+$ pip install -r requirements.txt
+
 Run the script with the following command:
 $ python3 jacbot.py
 
-or
-
+or:
 $ ./jacbot.py
-
-Ensure you have installed the required dependencies:
 
 Author: Jeklah
 Date: 28/08/2024
@@ -92,7 +96,7 @@ async def process_messages(client: TelegramClient) -> AsyncGenerator[int, None]:
 
     :param client: The TelegramClient instance.
 
-    :return: A generator yielding user IDs to invite.
+    :return: An asyncgenerator yielding user IDs to invite.
     """
     async for message in client.iter_messages(channel_to_scrape):
         # Check if the sender is a User and not a Channel/Chat
