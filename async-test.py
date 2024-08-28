@@ -1,9 +1,8 @@
 import asyncio
-import time
 from telethon import TelegramClient
 from telethon.errors import FloodWaitError
 from telethon.tl.functions.channels import InviteToChannelRequest
-from telethon.tl.types import User
+from telethon.tl.types import User, Channel, Chat
 
 
 api_id = 24887943
@@ -12,10 +11,12 @@ phone = '+447816945464'
 username = 'jacbotbot_bot'
 
 channel_to_invite_url = 't.me/jacbot_c'
+channel_to_scrape2 = 'https://t.me/+C9wUqflM_vg0NGVk'
+channel_to_scrape = 't.me/clickhouse_en'
 
 invite_attempts = {}  # Dictionary to keep track of invite attempts per user
 MAX_INVITES = 5  # Maximum number of times to invite a user
-MAX_CONCURRENT_INVITES = 5  # Maximum number of concurrent invites
+MAX_CONCURRENT_INVITES = 10  # Maximum number of concurrent invites
 
 
 async def invite_user(client, user_id, channel_to_invite):
@@ -32,7 +33,8 @@ async def invite_user(client, user_id, channel_to_invite):
         invite_attempts[user_id] = invite_attempts.get(user_id, 0)
 
         if invite_attempts[user_id] >= MAX_INVITES:
-            print(f"User {user_id} has already been invited {invite_attempts[user_id]} times. Skipping.")
+            print(
+                f"User {user_id} has already been invited {invite_attempts[user_id]} times. Skipping.")
             return
 
         success = False
@@ -45,7 +47,8 @@ async def invite_user(client, user_id, channel_to_invite):
                 success = True
             except FloodWaitError as e:
                 # Handle the FloodWait error
-                print(f"Flood wait error for user {user_id}: Need to wait for {e.seconds} seconds.")
+                print(
+                    f"Flood wait error for user {user_id}: Need to wait for {e.seconds} seconds.")
                 await asyncio.sleep(e.seconds)
             except Exception as e:
                 # Handle any other errors
@@ -58,12 +61,29 @@ async def invite_user(client, user_id, channel_to_invite):
 
 async def process_messages(client):
     """Function to process messages and yield users to invite."""
-    async for message in client.iter_messages("https://t.me/clickhouse_en"):
-        user_id = message.sender_id
+    async for message in client.iter_messages(channel_to_scrape2):
+        # Check if the sender is a User and not a Channel/Chat
+        if isinstance(message.sender, User):
+            user_id = message.sender_id
 
-        # Ensure the user is not a bot and is a valid user
-        if not message.sender.bot and user_id is not None:
-            yield user_id
+            # Ensure user is not a bot
+            if not message.sender.bot and user_id is not None:
+                yield user_id
+
+        # Check if the sender is a Channel or Chat
+        elif isinstance(message.sender, (Channel, Chat)):
+            try:
+                # Join the channel or chat if necessary
+                channel = await client.get_entity(message.sender_id)
+                print(f'Joined channel: {channel.title}')
+
+                # Iterate over the participants of the channel
+                async for participant in client.iter_participants(channel):
+                    if isinstance(participant, User) and not participant.bot:
+                        yield participant.id
+            except Exception as e:
+                print(f"Error processing channel {message.sender_id}: {e}")
+                return
 
 
 async def invite_users_concurrently(client, user_ids, channel_to_invite):
