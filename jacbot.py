@@ -6,6 +6,15 @@ The channels are specified by the username or URL.
 The bot processes messages 10 at a time.
 The bot will wait after multiple invite attempts to avoid being rate-limited.
 
+Run the script with the following command:
+$ python3 jacbot.py
+
+or
+
+$ ./jacbot.py
+
+Ensure you have installed the required dependencies:
+
 Author: Jeklah
 Date: 28/08/2024
 """
