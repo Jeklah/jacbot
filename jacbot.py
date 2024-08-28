@@ -1,26 +1,44 @@
+#!/usr/bin/env python3
+"""
+A Telegram bot that scrapes a channel for users and invites them to another channel.
+
+The channels are specified by the username or URL.
+The bot processes messages 10 at a time.
+The bot will wait after multiple invite attempts to avoid being rate-limited.
+
+Author: Jeklah
+Date: 28/08/2024
+"""
 import asyncio
+from collections.abc import AsyncGenerator
 from telethon import TelegramClient
 from telethon.errors import FloodWaitError
 from telethon.tl.functions.channels import InviteToChannelRequest
 from telethon.tl.types import User, Channel, Chat
 
+api_id: int = 24887943
+api_hash: str = '40d419c51d961cbd3dc173990ef5b858'
+phone: str = '+447816945464'
+username: str = 'jacbotbot_bot'
 
-api_id = 24887943
-api_hash = '40d419c51d961cbd3dc173990ef5b858'
-phone = '+447816945464'
-username = 'jacbotbot_bot'
+channel_to_invite_url: str = 't.me/jacbot_c'
+channel_to_scrape2: str = 't.me/+C9wUqflM_vg0NGVk'
+channel_to_scrape: str = 't.me/clickhouse_en'
 
-channel_to_invite_url = 't.me/jacbot_c'
-channel_to_scrape2 = 'https://t.me/+C9wUqflM_vg0NGVk'
-channel_to_scrape = 't.me/clickhouse_en'
-
-invite_attempts = {}  # Dictionary to keep track of invite attempts per user
-MAX_INVITES = 5  # Maximum number of times to invite a user
-MAX_CONCURRENT_INVITES = 10  # Maximum number of concurrent invites
+# Dictionary to keep track of invite attempts per user
+invite_attempts: dict[int, int] = {}
+MAX_INVITES: int = 5  # Maximum number of times to invite a user
+MAX_CONCURRENT_INVITES: int = 10  # Maximum number of concurrent invites
 
 
-async def invite_user(client, user_id, channel_to_invite):
-    """Function to invite a single user to the channel asynchronously."""
+async def invite_user(client: TelegramClient, user_id: int, channel_to_invite: Channel) -> None:
+    """
+    Function to invite a single user to the channel asynchronously.
+
+    :param client: The TelegramClient instance.
+    :param user_id: The ID of the user to invite.
+    :param channel_to_invite: The Channel entity to invite the user to.
+    """
     try:
         # Ensure we have the user entity (this helps with correct invite formatting)
         user_entity = await client.get_entity(user_id)
@@ -59,8 +77,14 @@ async def invite_user(client, user_id, channel_to_invite):
         print(f"Error processing user {user_id}: {e}")
 
 
-async def process_messages(client):
-    """Function to process messages and yield users to invite."""
+async def process_messages(client: TelegramClient) -> AsyncGenerator[int, None]:
+    """
+    Function to process messages and yield users to invite.
+
+    :param client: The TelegramClient instance.
+
+    :return: A generator yielding user IDs to invite.
+    """
     async for message in client.iter_messages(channel_to_scrape):
         # Check if the sender is a User and not a Channel/Chat
         if isinstance(message.sender, User):
@@ -86,8 +110,14 @@ async def process_messages(client):
                 return
 
 
-async def invite_users_concurrently(client, user_ids, channel_to_invite):
-    """Invite users concurrently with a limit on max concurrency."""
+async def invite_users_concurrently(client: TelegramClient, user_ids: list, channel_to_invite: Channel) -> None:
+    """
+    Invite users concurrently with a limit on max concurrency.
+
+    :param client: The TelegramClient instance.
+    :param user_ids: List of user IDs to invite.
+    :param channel_to_invite: The Channel entity to invite the users to.
+    """
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_INVITES)
 
     async def sem_invite_user(user_id):
